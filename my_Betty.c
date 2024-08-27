@@ -3,7 +3,7 @@
 /**
  * fact - calculates the factorial of a non-negative integer.
  * @n: the integer for which to calculate the factorial.
- * 
+ *
  * Return: fact of the integer, or (-1) if the integer is negative.
  */
 int fact(int n)
@@ -21,7 +21,7 @@ int fact(int n)
 
 /**
  * main - main entry point of the program.
- * 
+ *
  * Return: (0) on Success Always
  */
 int main(void)
