@@ -1,43 +1,79 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#define BUFFER_SIZE 1024
+#define PROMPT "simple_shell> "
+
+extern char **environ;
 
 /**
- * fact - calculates the factorial of a non-negative integer.
- * @n: the integer for which to calculate the factorial.
- *
- * Return: fact of the integer, or (-1) if the integer is negative.
+ * handle_command - Executes a command using execve.
+ * @command: The command to execute.
  */
-int fact(int n)
+void handle_command(char *command)
 {
-	if (n < 0)
+	pid_t pid, wpid;
+	int status;
+
+	pid = fork();
+	if (pid == 0)
 	{
-		return (-1);
+		execlp(command, command, (char *)NULL);
+
+		perror("simple_shell");
+		exit(EXIT_FAILURE);
 	}
-	if (n == 0 || n == 1)
+	else if (pid < 0)
 	{
-		return (1);
-	}
-	return (n * fact(n - 1));
-}
-
-/**
- * main - main entry point of the program.
- *
- * Return: (0) on Success Always
- */
-int main(void)
-{
-	int num = 5;
-	int res;
-
-	res = fact(num);
-
-	if (res != -1)
-	{
-		printf("%d\n", res);
+		perror("simple_shell");
 	}
 	else
 	{
-		printf("fact\n");
+		do
+		{
+			wpid = waitpid(pid, &status, WUNTRACED);
+		} while (!WIFEXITED(status) && !WIFSIGNALED(status));
+	}
+}
+
+/**
+ * main - Entry point for the simple shell program.
+ *
+ * Return: Always 0.
+ */
+int main(void)
+{
+	char buffer[BUFFER_SIZE];
+
+	while (1)
+	{
+		printf(PROMPT);
+		fflush(stdout);
+
+		if (fgets(buffer, BUFFER_SIZE, stdin) == NULL)
+		{
+			if (feof(stdin))
+			{
+				printf("\n");
+				break;
+			}
+			else
+			{
+				perror("simple_shell");
+				continue;
+			}
+		}
+
+		buffer[strcspn(buffer, "\n")] = '\0';
+
+		if (strlen(buffer) > 0)
+		{
+			handle_command(buffer);
+		}
 	}
 
 	return (0);
