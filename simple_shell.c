@@ -1,80 +1,71 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
 #define BUFFER_SIZE 1024
-#define PROMPT "simple_shell> "
-
-extern char **environ;
 
 /**
- * handle_command - Executes a command using execve.
- * @command: The command to execute.
- */
-void handle_command(char *command)
-{
-	pid_t pid, wpid;
-	int status;
-
-	pid = fork();
-	if (pid == 0)
-	{
-		execlp(command, command, (char *)NULL);
-
-		perror("simple_shell");
-		exit(EXIT_FAILURE);
-	}
-	else if (pid < 0)
-	{
-		perror("simple_shell");
-	}
-	else
-	{
-		do
-		{
-			wpid = waitpid(pid, &status, WUNTRACED);
-		} while (!WIFEXITED(status) && !WIFSIGNALED(status));
-	}
-}
-
-/**
- * main - Entry point for the simple shell program.
+ * main - Entry point for the simple shell
  *
- * Return: Always 0.
+ * Return: Always 0 (Success)
  */
 int main(void)
 {
-	char buffer[BUFFER_SIZE];
+	char *command = NULL;
+	size_t len = 0;
+	ssize_t read;
+	pid_t pid;
 
 	while (1)
 	{
-		printf(PROMPT);
-		fflush(stdout);
+		printf("simple_shell> ");
+		read = getline(&command, &len, stdin);
 
-		if (fgets(buffer, BUFFER_SIZE, stdin) == NULL)
+		if (read == -1)
 		{
 			if (feof(stdin))
 			{
-				printf("\n");
-				break;
+				free(command);
+				exit(0);
 			}
 			else
 			{
-				perror("simple_shell");
+				perror("getline");
 				continue;
 			}
 		}
 
-		buffer[strcspn(buffer, "\n")] = '\0';
+		command[strcspn(command, "\n")] = '\0';
 
-		if (strlen(buffer) > 0)
+		if (strlen(command) == 0)
 		{
-			handle_command(buffer);
+			continue;
+		}
+
+		pid = fork();
+		if (pid == -1)
+		{
+			perror("fork");
+		}
+		else if (pid == 0)
+		{
+			char *argv[] = {command, NULL};
+
+			if (execvp(command, argv) == -1)
+			{
+				perror(command);
+			}
+			exit(EXIT_FAILURE);
+		}
+		else
+		{
+			wait(NULL);
 		}
 	}
 
+	free(command);
 	return (0);
 }
