@@ -1,11 +1,35 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <stdlib.h>
 
 #define BUFFER_SIZE 1024
+
+/**
+ * _strlen - Calculates the length of a string
+ * @str: The string to calculate
+ *
+ * Return: The length of the string
+ */
+int _strlen(char *str)
+{
+	int len = 0;
+
+	while (str[len] != '\0')
+		len++;
+
+	return (len);
+}
+
+/**
+ * _puts - Writes a string to stdout
+ * @str: The string to write
+ */
+void _puts(char *str)
+{
+	write(STDOUT_FILENO, str, _strlen(str));
+}
 
 /**
  * main - Entry point for the simple shell
@@ -14,51 +38,44 @@
  */
 int main(void)
 {
-	char *command = NULL;
-	size_t len = 0;
-	ssize_t read;
+	char command[BUFFER_SIZE];
 	pid_t pid;
+	int i;
 
 	while (1)
 	{
-		printf("simple_shell> ");
-		read = getline(&command, &len, stdin);
+		_puts("simple_shell> ");
+		i = 0;
 
-		if (read == -1)
+		while (1)
 		{
-			if (feof(stdin))
-			{
-				free(command);
-				exit(0);
-			}
-			else
-			{
-				perror("getline");
-				continue;
-			}
+			if (read(STDIN_FILENO, &command[i], 1) == 0)
+				_exit(0);
+			if (command[i] == '\n')
+				break;
+			i++;
 		}
+		command[i] = '\0';
 
-		command[strcspn(command, "\n")] = '\0';
-
-		if (strlen(command) == 0)
-		{
+		if (command[0] == '\0')
 			continue;
-		}
 
 		pid = fork();
 		if (pid == -1)
 		{
-			perror("fork");
+			_puts("Fork error\n");
+			continue;
 		}
-		else if (pid == 0)
+		if (pid == 0)
 		{
 			char *argv[] = {command, NULL};
 
-			if (execvp(command, argv) == -1)
+			if (execve(command, argv, NULL) == -1)
 			{
-				perror(command);
+				_puts(command);
+				_puts(": Command not found\n");
 			}
-			exit(EXIT_FAILURE);
+			_exit(EXIT_FAILURE);
 		}
 		else
 		{
@@ -66,6 +83,5 @@ int main(void)
 		}
 	}
 
-	free(command);
 	return (0);
 }
